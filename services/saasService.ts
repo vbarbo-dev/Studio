@@ -1,5 +1,5 @@
 import { auth, db } from './firebase';
-import { createUserWithEmailAndPassword, signOut, updateProfile, UserCredential, onAuthStateChanged } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile, UserCredential, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { User, Condo } from '../types';
 
@@ -7,7 +7,7 @@ interface RegisterData {
     email: string;
     cpfCnpj: string;
     condoName: string;
-    unitsCount: number;
+    unitCount: number;
     subdomain: string;
 }
 
@@ -22,7 +22,7 @@ export const checkSubdomainAvailability = async (subdomain: string): Promise<boo
 
 // 1. Validação Pré-Cadastro
 export const handlePreSignup = async (data: RegisterData) => {
-    if (!data.email || !data.cpfCnpj || !data.condoName || !data.unitsCount || !data.subdomain) {
+    if (!data.email || !data.cpfCnpj || !data.condoName || !data.unitCount || !data.subdomain) {
         throw new Error("Dados incompletos.");
     }
     
@@ -60,9 +60,6 @@ export const createAuthUser = async (email: string): Promise<UserCredential> => 
         });
     });
 
-    // Garante que o token de auth já esteja pronto para regras do Firestore
-    await userCredential.user.getIdToken(true);
-
     return userCredential;
 };
 
@@ -77,18 +74,11 @@ export const createCondoDocument = async (data: RegisterData, userId: string) =>
         isActive: true,
         plan: 'pro',
         createdAt: new Date().toISOString(),
-        unitsCount: data.unitsCount,
+        unitCount: data.unitCount,
         cpfCnpj: data.cpfCnpj
     };
 
-    try {
-        await setDoc(doc(db, 'condos', newCondo.id), newCondo);
-    } catch (error: any) {
-        if (error?.code === 'permission-denied') {
-            throw new Error('Sem permissão para criar condomínio. Verifique as regras publicadas no Firestore e se o subdomínio já não possui cadastro parcial.');
-        }
-        throw error;
-    }
+    await setDoc(doc(db, 'condos', newCondo.id), newCondo);
     
     // Registrar subdomínio na coleção pública de consulta
     await setDoc(doc(db, 'subdomain_registry', newCondo.id), {
@@ -118,7 +108,7 @@ export const createUserDocument = async (userCredential: UserCredential, condoId
         apartment: 'ADM',
         block: 'ADM',
         phone: '',
-        photo: '',
+        photoUrl: '',
         needsPasswordChange: true,
         createdAt: new Date().toISOString()
     };
@@ -154,25 +144,29 @@ export const createSaaSAccount = async (data: RegisterData) => {
         console.log("Criando perfil de usuário...");
         await createUserDocument(userCredential, data.subdomain, data);
 
-        // Passo 6: Onboarding (boas-vindas + link de definição de senha em um único email)
-        console.log("Enviando email de onboarding via Resend...");
+        // Passo 6: Email de Senha (Custom Resend Flow)
+        console.log("Enviando emails via Resend...");
         try {
-            const onboardingResponse = await fetch('/api/saas/send-onboarding-email', {
+            // 1. Chamar nosso servidor para gerar o link e enviar via Resend
+            // Isso substitui o sendPasswordResetEmail(auth, data.email) do Client SDK
+            await fetch('/api/send-recovery-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: data.email,
+                body: JSON.stringify({ email: data.email })
+            });
+            
+            // 2. Enviar boas-vindas personalizado via Resend (Server API)
+            await fetch('/api/saas/send-welcome-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email: data.email, 
                     condoName: data.condoName,
-                    subdomain: data.subdomain
+                    subdomain: data.subdomain 
                 })
             });
-
-            if (!onboardingResponse.ok) {
-                const details = await onboardingResponse.text();
-                console.warn('Falha ao enviar email de onboarding:', onboardingResponse.status, details);
-            }
         } catch (emailError) {
-            console.warn("Erro ao enviar email de onboarding:", emailError);
+            console.warn("Erro ao enviar emails:", emailError);
         }
 
         // Passo 7: Logout

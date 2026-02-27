@@ -8,6 +8,8 @@ export interface Condo {
   unitCount: number;
   isActive: boolean;
   createdAt: string;
+  plan?: string;
+  cpfCnpj?: string;
 }
 
 export interface Unit {
@@ -28,12 +30,14 @@ export interface User {
   password?: string;
   role: UserRole;
   apartment?: string;
+  block?: string;
   unitId?: string; // Link to Unit entity
   residentType?: ResidentType;
   cpf?: string;
   phone?: string;
   needsPasswordChange: boolean;
   photoUrl?: string;
+  createdAt?: string;
 }
 
 export interface Notice {

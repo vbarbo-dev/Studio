@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createSaaSAccount, checkSubdomainAvailability } from '../services/saasService';
+import { mockProcessPayment, createSaaSAccount, checkSubdomainAvailability } from '../services/saasService';
 import { ArrowRight, CheckCircle, Warning, X, Globe, IdentificationCard, Hash } from '@phosphor-icons/react';
 
 interface RegisterCondoProps {
@@ -21,7 +21,7 @@ export const RegisterCondo: React.FC<RegisterCondoProps> = ({ onClose, isDarkMod
         email: '',
         cpfCnpj: '',
         condoName: '',
-        unitsCount: 0,
+        unitCount: 0,
         subdomain: ''
     });
     const [isSubdomainManual, setIsSubdomainManual] = useState(false);
@@ -85,7 +85,7 @@ export const RegisterCondo: React.FC<RegisterCondoProps> = ({ onClose, isDarkMod
 
     const handleNext = () => {
         if (step === 1) {
-            if (!formData.email || !formData.cpfCnpj || !formData.condoName || !formData.unitsCount || !formData.subdomain) {
+            if (!formData.email || !formData.cpfCnpj || !formData.condoName || !formData.unitCount || !formData.subdomain) {
                 setError('Preencha todos os campos corretamente.');
                 return;
             }
@@ -102,6 +102,7 @@ export const RegisterCondo: React.FC<RegisterCondoProps> = ({ onClose, isDarkMod
         setLoading(true);
         setError('');
         try {
+            await mockProcessPayment('pro_plan');
             await createSaaSAccount(formData);
             setSuccess(true);
             setLoading(false);
@@ -247,8 +248,8 @@ export const RegisterCondo: React.FC<RegisterCondoProps> = ({ onClose, isDarkMod
                                 <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2 ml-1 flex items-center gap-2"><Hash size={14}/> Unidades</label>
                                 <input 
                                     type="number" 
-                                    value={formData.unitsCount || ''}
-                                    onChange={e => setFormData({...formData, unitsCount: parseInt(e.target.value) || 0})}
+                                    value={formData.unitCount || ''}
+                                    onChange={e => setFormData({...formData, unitCount: parseInt(e.target.value) || 0})}
                                     className="w-full p-4 border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
                                     placeholder="Ex: 50"
                                 />
