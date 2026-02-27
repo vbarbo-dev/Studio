@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockProcessPayment, createSaaSAccount, checkSubdomainAvailability } from '../services/saasService';
+import { createSaaSAccount, checkSubdomainAvailability } from '../services/saasService';
 import { ArrowRight, CheckCircle, Warning, X, Globe, IdentificationCard, Hash } from '@phosphor-icons/react';
 
 interface RegisterCondoProps {
@@ -102,7 +102,6 @@ export const RegisterCondo: React.FC<RegisterCondoProps> = ({ onClose, isDarkMod
         setLoading(true);
         setError('');
         try {
-            await mockProcessPayment('pro_plan');
             await createSaaSAccount(formData);
             setSuccess(true);
             setLoading(false);

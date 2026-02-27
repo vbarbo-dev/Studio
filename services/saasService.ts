@@ -1,5 +1,5 @@
 import { auth, db } from './firebase';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile, UserCredential, onAuthStateChanged } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signOut, updateProfile, UserCredential, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { User, Condo } from '../types';
 
@@ -60,6 +60,9 @@ export const createAuthUser = async (email: string): Promise<UserCredential> => 
         });
     });
 
+    // Garante que o token de auth já esteja pronto para regras do Firestore
+    await userCredential.user.getIdToken(true);
+
     return userCredential;
 };
 
@@ -78,7 +81,14 @@ export const createCondoDocument = async (data: RegisterData, userId: string) =>
         cpfCnpj: data.cpfCnpj
     };
 
-    await setDoc(doc(db, 'condos', newCondo.id), newCondo);
+    try {
+        await setDoc(doc(db, 'condos', newCondo.id), newCondo);
+    } catch (error: any) {
+        if (error?.code === 'permission-denied') {
+            throw new Error('Sem permissão para criar condomínio. Verifique as regras publicadas no Firestore e se o subdomínio já não possui cadastro parcial.');
+        }
+        throw error;
+    }
     
     // Registrar subdomínio na coleção pública de consulta
     await setDoc(doc(db, 'subdomain_registry', newCondo.id), {
@@ -144,29 +154,25 @@ export const createSaaSAccount = async (data: RegisterData) => {
         console.log("Criando perfil de usuário...");
         await createUserDocument(userCredential, data.subdomain, data);
 
-        // Passo 6: Email de Senha (Custom Resend Flow)
-        console.log("Enviando emails via Resend...");
+        // Passo 6: Onboarding (boas-vindas + link de definição de senha em um único email)
+        console.log("Enviando email de onboarding via Resend...");
         try {
-            // 1. Chamar nosso servidor para gerar o link e enviar via Resend
-            // Isso substitui o sendPasswordResetEmail(auth, data.email) do Client SDK
-            await fetch('/api/send-recovery-email', {
+            const onboardingResponse = await fetch('/api/saas/send-onboarding-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: data.email })
-            });
-            
-            // 2. Enviar boas-vindas personalizado via Resend (Server API)
-            await fetch('/api/saas/send-welcome-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    email: data.email, 
+                body: JSON.stringify({
+                    email: data.email,
                     condoName: data.condoName,
-                    subdomain: data.subdomain 
+                    subdomain: data.subdomain
                 })
             });
+
+            if (!onboardingResponse.ok) {
+                const details = await onboardingResponse.text();
+                console.warn('Falha ao enviar email de onboarding:', onboardingResponse.status, details);
+            }
         } catch (emailError) {
-            console.warn("Erro ao enviar emails:", emailError);
+            console.warn("Erro ao enviar email de onboarding:", emailError);
         }
 
         // Passo 7: Logout

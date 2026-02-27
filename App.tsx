@@ -173,7 +173,7 @@ function App() {
                           await setDoc(doc(db, 'users', user.uid), {
                               ...oldUserData,
                               id: user.uid // Ensure ID inside doc matches UID
-                          });
+                          }, () => setConnectionStatus('offline'));
                           
                           // Delete old doc to prevent duplicates
                           await deleteDoc(doc(db, 'users', oldUserDoc.id));
@@ -284,23 +284,23 @@ function App() {
         if (snapshot.empty) {
             INITIAL_COMMON_AREAS.forEach(area => addDoc(collection(db, 'areas'), { ...area, condoId: currentCondo.id }));
         }
-    });
+    }, () => setConnectionStatus('offline'));
 
-    const unsubNotices = onSnapshot(getCondoQuery('notices'), (snap) => setNotices(snap.docs.map(d => ({ id: d.id, ...d.data() } as Notice))));
-    const unsubReservations = onSnapshot(getCondoQuery('reservations'), (snap) => setReservations(snap.docs.map(d => ({ id: d.id, ...d.data() } as Reservation))));
-    const unsubIncidents = onSnapshot(getCondoQuery('incidents'), (snap) => setIncidents(snap.docs.map(d => ({ id: d.id, ...d.data() } as Incident))));
-    const unsubTransactions = onSnapshot(getCondoQuery('transactions'), (snap) => setTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction))));
-    const unsubReminders = onSnapshot(getCondoQuery('reminders'), (snap) => setReminders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Reminder))));
-    const unsubDocuments = onSnapshot(getCondoQuery('documents'), (snap) => setDocuments(snap.docs.map(d => ({ id: d.id, ...d.data() } as CondoDocument))));
-    const unsubUnits = onSnapshot(getCondoQuery('units'), (snap) => setUnits(snap.docs.map(d => ({ id: d.id, ...d.data() } as Unit))));
-    const unsubVisitors = onSnapshot(getCondoQuery('visitors'), (snap) => setVisitors(snap.docs.map(d => ({ id: d.id, ...d.data() } as Visitor))));
-    const unsubOrders = onSnapshot(getCondoQuery('orders'), (snap) => setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))));
+    const unsubNotices = onSnapshot(getCondoQuery('notices'), (snap) => setNotices(snap.docs.map(d => ({ id: d.id, ...d.data() } as Notice))), () => setConnectionStatus('offline'));
+    const unsubReservations = onSnapshot(getCondoQuery('reservations'), (snap) => setReservations(snap.docs.map(d => ({ id: d.id, ...d.data() } as Reservation))), () => setConnectionStatus('offline'));
+    const unsubIncidents = onSnapshot(getCondoQuery('incidents'), (snap) => setIncidents(snap.docs.map(d => ({ id: d.id, ...d.data() } as Incident))), () => setConnectionStatus('offline'));
+    const unsubTransactions = onSnapshot(getCondoQuery('transactions'), (snap) => setTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction))), () => setConnectionStatus('offline'));
+    const unsubReminders = onSnapshot(getCondoQuery('reminders'), (snap) => setReminders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Reminder))), () => setConnectionStatus('offline'));
+    const unsubDocuments = onSnapshot(getCondoQuery('documents'), (snap) => setDocuments(snap.docs.map(d => ({ id: d.id, ...d.data() } as CondoDocument))), () => setConnectionStatus('offline'));
+    const unsubUnits = onSnapshot(getCondoQuery('units'), (snap) => setUnits(snap.docs.map(d => ({ id: d.id, ...d.data() } as Unit))), () => setConnectionStatus('offline'));
+    const unsubVisitors = onSnapshot(getCondoQuery('visitors'), (snap) => setVisitors(snap.docs.map(d => ({ id: d.id, ...d.data() } as Visitor))), () => setConnectionStatus('offline'));
+    const unsubOrders = onSnapshot(getCondoQuery('orders'), (snap) => setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))), () => setConnectionStatus('offline'));
     
     const unsubCondoSettings = onSnapshot(doc(db, 'condos', currentCondo.id), (docSnap) => {
         if(docSnap.exists()) {
              setCurrentCondo({ id: docSnap.id, ...docSnap.data() } as Condo);
         }
-    });
+    }, () => setConnectionStatus('offline'));
 
     return () => {
         unsubUsers(); unsubAreas(); unsubNotices(); unsubReservations(); unsubIncidents(); unsubTransactions(); unsubReminders(); unsubDocuments(); unsubCondoSettings(); unsubVisitors(); unsubOrders(); unsubUnits();
