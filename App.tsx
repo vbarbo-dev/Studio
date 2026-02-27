@@ -562,10 +562,72 @@ function App() {
   const handleRemoveTransaction = async (id: string) => { await deleteDoc(doc(db, 'transactions', id)); showToast('Lançamento removido.'); };
   const handleAddDocument = async (d: CondoDocument) => { const {id, ...rest} = d; await addDoc(collection(db, 'documents'), {...rest, condoId: currentCondo!.id}); showToast('Documento adicionado!'); };
   const handleRemoveDocument = async (id: string) => { await deleteDoc(doc(db, 'documents', id)); showToast('Documento removido.'); };
-  const handleAddUser = async (u: User) => { const {id, ...d} = u; await addDoc(collection(db, 'users'), {...d, condoId: currentCondo!.id}); showToast('Usuário cadastrado.'); };
+  const handleAddUser = async (u: User) => { 
+    try {
+      // 1. Criar no Auth via Servidor (para permitir login com CPF)
+      const response = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: u.email, 
+          password: u.password || u.cpf?.replace(/\D/g, '') || '123456',
+          name: u.name
+        })
+      });
+      
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Erro ao criar usuário no sistema de autenticação.');
+      }
+      
+      const { uid } = await response.json();
+      
+      // 2. Criar no Firestore usando o UID do Auth
+      const { id, password, ...d } = u; 
+      await setDoc(doc(db, 'users', uid), {
+        ...d, 
+        id: uid,
+        condoId: currentCondo!.id,
+        createdAt: new Date().toISOString()
+      });
+      
+      showToast('Usuário cadastrado e acesso liberado.'); 
+    } catch (error: any) {
+      console.error(error);
+      showToast(error.message || 'Erro ao cadastrar usuário.', 'error');
+    }
+  };
   const handleUpdateUser = async (id: string, u: Partial<User>) => { await updateDoc(doc(db, 'users', id), u); showToast('Dados atualizados.'); };
   const handleRemoveUser = async (id: string) => { await deleteDoc(doc(db, 'users', id)); showToast('Usuário removido.'); };
-  const handleResetPassword = async (id: string) => { const u = users.find(x => x.id === id); if(u) { await updateDoc(doc(db, 'users', id), { password: u.cpf || '123456', needsPasswordChange: true }); showToast('Senha resetada.'); }};
+  const handleResetPassword = async (id: string) => { 
+    const u = users.find(x => x.id === id); 
+    if(u) { 
+      try {
+        const newPassword = u.cpf?.replace(/\D/g, '') || '123456';
+        
+        // 1. Atualizar no Auth via Servidor
+        await fetch('/api/admin/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: u.email, 
+            password: newPassword,
+            name: u.name
+          })
+        });
+
+        // 2. Atualizar no Firestore
+        await updateDoc(doc(db, 'users', id), { 
+          password: newPassword, 
+          needsPasswordChange: true 
+        }); 
+        
+        showToast('Senha resetada para o CPF.'); 
+      } catch (error) {
+        showToast('Erro ao resetar senha.', 'error');
+      }
+    }
+  };
   const handleSaveSettings = async (s: CondoSettings) => { if(currentCondo) { await updateDoc(doc(db, 'condos', currentCondo.id), { name: s.name, address: s.address }); showToast('Configurações salvas.'); } };
   const addReminder = async (text: string) => { await addDoc(collection(db, 'reminders'), { text, completed: false, condoId: currentCondo!.id }); };
   const toggleReminder = async (id: string) => { const r = reminders.find(x => x.id === id); if(r) await updateDoc(doc(db, 'reminders', id), { completed: !r.completed }); };

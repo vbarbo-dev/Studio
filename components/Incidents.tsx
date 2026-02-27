@@ -70,7 +70,7 @@ export const Incidents: React.FC<IncidentsProps> = ({ incidents, addIncident, up
       approved: currentUser.role === 'syndic', // Syndic auto-approves, Resident needs approval
       authorName: currentUser.name,
       apartment: currentUser.apartment || 'Administração',
-      imageUrl: selectedImage || undefined
+      ...(selectedImage ? { imageUrl: selectedImage } : {})
     });
     setTitle('');
     setDescription('');

@@ -161,6 +161,44 @@ app.post('/api/saas/send-welcome-email', async (req, res) => {
   }
 });
 
+// Admin Route: Create Auth User
+app.post('/api/admin/create-user', async (req, res) => {
+  const { email, password, name } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  try {
+    // Check if user already exists
+    let userRecord;
+    try {
+      userRecord = await admin.auth().getUserByEmail(email);
+      // If exists, we might want to update the password if it's a reset/sync
+      await admin.auth().updateUser(userRecord.uid, {
+        password: password,
+        displayName: name || userRecord.displayName
+      });
+    } catch (e: any) {
+      if (e.code === 'auth/user-not-found') {
+        // Create new user
+        userRecord = await admin.auth().createUser({
+          email,
+          password,
+          displayName: name,
+        });
+      } else {
+        throw e;
+      }
+    }
+
+    res.json({ uid: userRecord.uid });
+  } catch (err: any) {
+    console.error('Error creating auth user:', err);
+    res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
 // Vite Middleware (for development)
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
