@@ -127,21 +127,21 @@ export const ResidentsManager: React.FC<ResidentsManagerProps> = ({ users, units
 
       if (editingId) {
           // Update mode
-          updateUser(editingId, {
+          const updates: any = {
               name: formData.name,
               email: formData.email,
               cpf: formData.cpf,
               phone: formData.phone,
               apartment: finalApartment,
-              role: formData.role,
-              unitId: finalUnitId,
-              residentType: finalResidentType as ResidentType
-          });
+              role: formData.role
+          };
+          if (finalUnitId) updates.unitId = finalUnitId;
+          if (finalResidentType) updates.residentType = finalResidentType;
+          
+          updateUser(editingId, updates);
       } else {
           // Create mode
-          const newUser: User = {
-              id: Date.now().toString(),
-              condoId: '', // Placeholder, overwritten by parent component
+          const newUser: any = {
               role: formData.role,
               name: formData.name,
               email: formData.email,
@@ -150,10 +150,13 @@ export const ResidentsManager: React.FC<ResidentsManagerProps> = ({ users, units
               apartment: finalApartment,
               password: rawCpf, 
               needsPasswordChange: true,
-              unitId: finalUnitId,
-              residentType: finalResidentType as ResidentType
+              createdAt: new Date().toISOString()
           };
-          addUser(newUser);
+          
+          if (finalUnitId) newUser.unitId = finalUnitId;
+          if (finalResidentType) newUser.residentType = finalResidentType;
+          
+          addUser(newUser as User);
       }
       
       cancelForm();

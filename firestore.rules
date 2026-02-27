@@ -50,15 +50,45 @@ service cloud.firestore {
     }
 
     // --- REGRAS PARA COLEÇÕES DO CONDOMÍNIO ---
-    match /reservations/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
-    match /visitors/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
-    match /areas/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
-    match /units/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
-    match /transactions/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
-    match /notices/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
-    match /incidents/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
-    match /documents/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
-    match /reminders/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
-    match /orders/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
+    match /reservations/{id} {
+      allow create: if isMember(request.resource.data.condoId);
+      allow read, update, delete: if isMember(resource.data.condoId);
+    }
+    match /visitors/{id} {
+      allow create: if isMember(request.resource.data.condoId);
+      allow read, update, delete: if isMember(resource.data.condoId);
+    }
+    match /areas/{id} {
+      allow create: if isMember(request.resource.data.condoId);
+      allow read, update, delete: if isMember(resource.data.condoId);
+    }
+    match /units/{id} {
+      allow create: if isMember(request.resource.data.condoId);
+      allow read, update, delete: if isMember(resource.data.condoId);
+    }
+    match /transactions/{id} {
+      allow create: if isMember(request.resource.data.condoId);
+      allow read, update, delete: if isMember(resource.data.condoId);
+    }
+    match /notices/{id} {
+      allow create: if isMember(request.resource.data.condoId);
+      allow read, update, delete: if isMember(resource.data.condoId);
+    }
+    match /incidents/{id} {
+      allow create: if isMember(request.resource.data.condoId);
+      allow read, update, delete: if isMember(resource.data.condoId);
+    }
+    match /documents/{id} {
+      allow create: if isMember(request.resource.data.condoId);
+      allow read, update, delete: if isMember(resource.data.condoId);
+    }
+    match /reminders/{id} {
+      allow create: if isMember(request.resource.data.condoId);
+      allow read, update, delete: if isMember(resource.data.condoId);
+    }
+    match /orders/{id} {
+      allow create: if isMember(request.resource.data.condoId);
+      allow read, update, delete: if isMember(resource.data.condoId);
+    }
   }
 }
