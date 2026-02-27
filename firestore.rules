@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Bloqueia tudo por padrão
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Função auxiliar para verificar se o usuário pertence ao condomínio
+    function isMember(condoId) {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.condoId == condoId;
+    }
+
+    // --- REGRAS DE USUÁRIOS ---
+    match /users/{userId} {
+      // Permite ler/editar o próprio perfil
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Permite buscar por email (necessário para o login/migração)
+      allow list: if request.auth != null && request.resource.data.email == request.auth.token.email;
+    }
+
+    // --- REGRAS DE CONDOMÍNIOS ---
+    match /condos/{condoId} {
+      // Síndicos e membros podem ler os dados do condomínio
+      allow read: if isMember(condoId);
+      
+      // Permite criar novo condomínio (Fluxo SaaS)
+      // Importante: Não usamos isMember aqui porque o perfil do usuário ainda não existe
+      allow create: if request.auth != null;
+    }
+
+    // --- REGISTRO DE SUBDOMÍNIOS (Público para consulta de disponibilidade) ---
+    match /subdomain_registry/{subdomain} {
+      allow get: if true;
+      allow create: if request.auth != null;
+    }
+
+    // --- REGRAS PARA COLEÇÕES DO CONDOMÍNIO (Reservas, Contas, Ocorrências, etc) ---
+    // Aplicamos a regra baseada no condoId presente nos documentos
+    match /reservations/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
+    match /accounts/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
+    match /occurrences/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
+    match /announcements/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
+    match /visitors/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
+    match /parcels/{id} { allow read, write: if isMember(resource.data.condoId || request.resource.data.condoId); }
+  }
+}

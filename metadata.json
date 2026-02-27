@@ -1,0 +1,5 @@
+{
+  "name": "Zyndo",
+  "description": "Sistema de gestão simplificado para condomínios pequenos (10-40 aptos). Gerencie avisos, reservas, ocorrências e contas com ajuda de IA.",
+  "requestFramePermissions": []
+}
